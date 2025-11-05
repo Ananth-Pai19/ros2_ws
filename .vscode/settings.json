@@ -1,0 +1,18 @@
+{
+    "python.autoComplete.extraPaths": [
+        "/home/ananth/dev_ws/install/diff_ik_package/lib/python3.10/site-packages",
+        "/home/ananth/ros2_ws_backup/install/traversal2/local/lib/python3.10/dist-packages",
+        "/home/ananth/ros2_ws_backup/build/control2",
+        "/home/ananth/ros2_ws_backup/install/control2/lib/python3.10/site-packages",
+        "/opt/ros/humble/lib/python3.10/site-packages",
+        "/opt/ros/humble/local/lib/python3.10/dist-packages"
+    ],
+    "python.analysis.extraPaths": [
+        "/home/ananth/dev_ws/install/diff_ik_package/lib/python3.10/site-packages",
+        "/home/ananth/ros2_ws_backup/install/traversal2/local/lib/python3.10/dist-packages",
+        "/home/ananth/ros2_ws_backup/build/control2",
+        "/home/ananth/ros2_ws_backup/install/control2/lib/python3.10/site-packages",
+        "/opt/ros/humble/lib/python3.10/site-packages",
+        "/opt/ros/humble/local/lib/python3.10/dist-packages"
+    ]
+}
