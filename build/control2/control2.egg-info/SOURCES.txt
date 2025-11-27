@@ -1,8 +1,11 @@
 package.xml
 setup.cfg
 setup.py
+config/mapper_params_online_async.yaml
 control2/Full_Potential_Steering_Auto_ROS2.py
 control2/__init__.py
+control2/random_pub.py
+control2/test.py
 control2.egg-info/PKG-INFO
 control2.egg-info/SOURCES.txt
 control2.egg-info/dependency_links.txt

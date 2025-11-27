@@ -8,7 +8,10 @@ def generate_launch_description():
             executable='joy_node',
             name='joy',
             respawn=True,
-            parameters=[{'dev': '/dev/input/js0'}],
+            parameters=[{
+            'dev': '/dev/input/js0',
+            'device_id': 0,  
+            }],
             remappings=[('joy', 'joy')]
         ),
         Node(
@@ -16,7 +19,10 @@ def generate_launch_description():
             executable='joy_node', 
             name='joy_arm',
             respawn=True,
-            parameters=[{'dev': '/dev/input/js1'}],
+            parameters=[{
+                'dev': '/dev/input/js1',
+                'device_id': 1,
+            }],
             remappings=[('joy', 'joy_arm')]
         )
     ])  
