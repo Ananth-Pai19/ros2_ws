@@ -4,7 +4,7 @@ import rclpy as r
 from rclpy.node import Node
 import copy
 from sensor_msgs.msg import Joy
-from std_msgs.msg import Int8, Int32MultiArray, Float32MultiArray
+from std_msgs.msg import Int8, Int32MultiArray, Float32MultiArray, Bool
 import queue
 from operator import add
 from geometry_msgs.msg import Twist
@@ -122,11 +122,17 @@ class Drive(Node):
         self.odom_sub = self.create_subscription(Odometry, "/odom", self.odom_callback, self.qos)
 
         self.pwm_pub = self.create_publisher(Int32MultiArray, "/motor_pwm", self.qos)
+        self.state_pub = self.create_publisher(Bool, "/state", self.qos)
 
         self.timer = self.create_timer(0.1, self.timer_callback)
 
 
     def joy_callback(self, joy: Joy):
+
+        # Just ignore this, this is only for autonomous missions
+        state_message = Bool()
+        state_message.data = self.state
+        self.state_pub.publish(state_message)
 
         if not self.state:   # The rover is in manual mode  
             
