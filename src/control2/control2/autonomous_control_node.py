@@ -10,7 +10,6 @@ import csv
 from time import sleep
 import math
 import numpy as np
-from ultralytics import YOLO
 from cv_bridge import CvBridge
 
 
@@ -25,11 +24,9 @@ class AutonomousControl(Node):
         self.yolo_sub = self.create_subscription(Float32MultiArray, "/cone_bbox", self.yolo_callback, self.qos)
         self.state_sub = self.create_subscription(Bool, "/state", self.state_callback, self.qos)
         self.depth_sub = self.create_subscription(Image, "/zed/depth/image_rect_raw", self.depth_callback, self.qos)
-        self.color_sub = self.create_subscription(Image, "/zed2i/zed_node/left/color/rect/image", self.color_callback, self.qos)
 
         # Define the csv stuff, we will read from kavin.csv
         self.odom_csv_file = "kavin.csv"
-        self.current_object_number = 1
         self.error_thresh = 0.5
         self.Kp = 15                                # Remember to tune this value
         self.loaf_velocity = 30                     # Remember to change this value
@@ -37,6 +34,10 @@ class AutonomousControl(Node):
         self.goal_thresh = 0.5
         self.check = 0
         self.distance = 0.0
+        self.depth_image = None
+        self.Kp_ang = 10                            # Remember to tune this value
+        self.center_align_threshold = 5             # 5 Pixels of threshold
+        self.image_width = 1280                     # Check once 
         
         self.current_orientation = 0.0
         self.desired_orientation = 0.0
@@ -47,7 +48,6 @@ class AutonomousControl(Node):
         self.bounding_box_data = []
                   
         # Make a timer as the control loop of the main program  
-        self.desired_orientation = 0.0
         
         self.bridge = CvBridge()
         self.timer = self.create_timer(0.1, self.timer_callback)
@@ -55,16 +55,6 @@ class AutonomousControl(Node):
 
     def state_callback(self, state: Bool):
         self.state = state.data
-
-    def color_callback(self, color_image: Image):
-        if color_image is None:
-            self.get_logger().warn("ZED is not giving color image")
-            return
-        
-        try:
-            self.color_image = self.bridge.imgmsg_to_cv2(color_image, desired_encoding="bgr8")
-        except Exception as e:
-            self.get_logger().error(f"Exception in getting color image: {e}")
         
     
     def depth_callback(self, depth_image: Image):
@@ -108,11 +98,7 @@ class AutonomousControl(Node):
         if not self.csv_data:
             self.get_logger().warn('No CSV data loaded')
             return 
-        
-        if self.current_object_number < 1 or self.current_object_number >= len(self.csv_data):
-            self.get_logger().warn(f'Counter {self.current_object_number} out of range (0-{len(self.csv_data)-1})')
-            return 
-        
+
         curr_distance = float('inf')
         closest_object = {}
         for row in self.csv_data:
@@ -126,12 +112,15 @@ class AutonomousControl(Node):
 
     def get_depth(self):
         # Get the depth from the detected bounding box
+        if self.depth_image is None:
+            return
+
         x_center, y_center = int(self.bounding_box_data[0]), int(self.bounding_box_data[1])
 
         # Make sure (x,y) pixel is valid
         if (y_center < 2 or y_center >= self.depth_image.shape[0] - 2 or
             x_center < 2 or x_center >= self.depth_image.shape[1] - 2):
-            return
+            return 
 
         # Extract a small patch (5x5) around the cone center for a stable median depth
         patch = self.depth_image[y_center - 2:y_center + 3, x_center - 2:x_center + 3].flatten()
@@ -139,16 +128,28 @@ class AutonomousControl(Node):
         # Filter out invalid values (NaN, 0, or inf)
         patch = patch[np.isfinite(patch)]
         patch = patch[patch > 0]
+
         if len(patch) == 0:
-            return
+            return 
 
         depth = float(np.median(patch))  # median depth (meters)
         return depth
     
 
     def align_rover(self):
-        object_offset = self.bounding_box_data[0]
-    
+        # X axis offset of the object
+        # If the object is on the left of the central line, then positive velocity
+        object_offset = (self.image_width / 2) - self.bounding_box_data[0]
+
+        # Make the angular velocity to rotate by
+        self.get_logger().info("Sending rotate command to rover to align with the cone")
+        if abs(object_offset) > self.center_align_threshold:
+            twist_message = Twist()
+            twist_message.angular.z = self.Kp_ang * object_offset 
+            self.twist_pub.publish(twist_message)
+        else:
+            self.aligned_rover = True
+
         
     def timer_callback(self):
         # Main loop begins when the operator first clicks the A button
@@ -203,16 +204,26 @@ class AutonomousControl(Node):
 
                 # Align the rover with the object
                 if not self.aligned_rover:
-                    self.align_rover()           # <- ######################################
+                    self.align_rover()           
+
+                self.get_logger().info("Rover is aligned and facing the cone....")
+
                 # Get the depth of the object
                 depth = self.get_depth()
 
+                if depth is None:
+                    raise TypeError("For some bizarre reason, depth is None")
+                
+                # Proceed onwards
+                twist_message.linear.x = self.loaf_velocity
 
-
-                if self.distance < 1.0:
+                if depth < self.goal_thresh:
                     self.get_logger().info("Reached delivery location!") # Operator should press A for manual mode over here
+                    twist_message.linear.x = 0.0
+                    self.twist_pub.publish(twist_message)
                     return
                 
+                self.twist_pub.publish(twist_message)
                 # if self.distance < 1.0:
                 #     self.get_logger().info("Reached delivery location!") # Operator should press A for manual mode over here
                 #     with open(self.odom_csv_file, 'w', newline='') as f:
