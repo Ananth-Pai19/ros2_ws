@@ -28,6 +28,10 @@ setup(
     },
     entry_points={
         'console_scripts': [
+            "case2 = control2.autonomous_control_node_case2:main",
+            "fullboi = control2.Full_Potential_Steering_Auto_ROS2:main",
+            "cone_detector = control2.cone_detection:main",
+            "case1 = control2.autonomous_control_code_case1:main",
         ],
     },
 )

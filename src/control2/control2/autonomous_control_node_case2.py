@@ -219,7 +219,6 @@ class AutonomousControl(Node):
                 # Proceed onwards
                 twist_message.linear.x = self.loaf_velocity
 
-
                 # If while going to the cone we deflect, set aligned_rover to False
                 if abs(self.bounding_box_data[0] - (self.image_width / 2)) > self.center_align_threshold * 5:
                     self.aligned_rover = False 
@@ -227,6 +226,7 @@ class AutonomousControl(Node):
                 if depth < self.goal_thresh:
                     self.get_logger().info("Reached delivery location!") # Operator should press A for manual mode over here
                     twist_message.linear.x = 0.0
+                    twist_message.angular.z = 0.0
                     self.twist_pub.publish(twist_message)
                     return
                 
