@@ -15,6 +15,7 @@ from cv_bridge import CvBridge
 
 class AutonomousControl(Node):
     def __init__(self):
+        super().__init__("autonomous_control_node")
         self.qos = QoSProfile(depth=10, reliability=ReliabilityPolicy.RELIABLE)
 
         self.twist_pub = self.create_publisher(Twist, "/motion", self.qos)
@@ -38,6 +39,7 @@ class AutonomousControl(Node):
         self.Kp_ang = 10                            # Remember to tune this value
         self.center_align_threshold = 5             # 5 Pixels of threshold
         self.image_width = 1280                     # Check once 
+        self.state = False
         
         self.current_orientation = 0.0
         self.desired_orientation = 0.0
@@ -46,10 +48,8 @@ class AutonomousControl(Node):
         self.current_x = 0.0
         self.current_y = 0.0  
         self.bounding_box_data = []
-                  
-        # Make a timer as the control loop of the main program  
-        
         self.bridge = CvBridge()
+
         self.timer = self.create_timer(0.1, self.timer_callback)
         
 
@@ -76,7 +76,7 @@ class AutonomousControl(Node):
         
         bounding_box_data = msg.data
 
-        if bounding_box_data is None or len(bounding_box_data) < 5:
+        if bounding_box_data is None or len(bounding_box_data) < 4:
             return
         
         self.bounding_box_data = bounding_box_data
@@ -172,12 +172,13 @@ class AutonomousControl(Node):
         # Having gotten the orientation, we shall rotate until we are at this orientation only
         twist_message = Twist()
         
-        if abs((error := (self.desired_orientation - self.current_orientation))) > self.error_thresh and not self.aligned:
+        if (abs((error := (self.desired_orientation - self.current_orientation))) > self.error_thresh and not self.aligned) or (abs((error := (self.desired_orientation - self.current_orientation))) > self.error_thresh * 2.0 and self.aligned):
             # Orientation is angle after all
             # Error is greater than our threshold, so perform the rotate-in-place
             self.rot_pub.publish(1)  # -> Makes the rover steer to rotate in place
             sleep(2)                 # Sleeping for 2 seconds, assuming it takes this much time to align its wheels
             
+            self.get_logger().info("Rotating in place until desired orientation has been achieved")
             # Could use a PID controller here, but P is fine for now
             self.rotate_in_place_velocity = self.Kp * error
 
@@ -189,7 +190,8 @@ class AutonomousControl(Node):
             self.aligned = True
             
             # Alright now i think we are facing the cone
-            self.twist_pub.publish(Twist()) #stop rotation
+            self.twist_pub.publish(Twist()) # stop rotation
+            self.get_logger().info("Aligning the wheels straight")
             self.rot_pub.publish(2)         # -> Aligns rover straight
             sleep(2)                        # Assuming it takes 2s to align
             self.rot_pub.publish(0)
@@ -216,6 +218,11 @@ class AutonomousControl(Node):
                 
                 # Proceed onwards
                 twist_message.linear.x = self.loaf_velocity
+
+
+                # If while going to the cone we deflect, set aligned_rover to False
+                if abs(self.bounding_box_data[0] - (self.image_width / 2)) > self.center_align_threshold * 5:
+                    self.aligned_rover = False 
 
                 if depth < self.goal_thresh:
                     self.get_logger().info("Reached delivery location!") # Operator should press A for manual mode over here
