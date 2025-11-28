@@ -11,9 +11,6 @@ class Drive(Node):
     def __init__(self):
         super().__init__("drive_node")
 
-        # ====== Motion parameters ======
-        self.vel_pub = self.create_publisher(Twist, "/motion", 10)
-
         # ====== Direct GPS navigation variables ======
         self.start_lat = None
         self.start_lon = None
@@ -36,11 +33,10 @@ class Drive(Node):
         self.control_loop_start = False
         self.heading_angle = None
 
+        self.vel_pub = self.create_publisher(Twist, "/motion", 10)
         self.gps_sub = self.create_subscription(NavSatFix, "/sim/fix_gps", self.gps_callback, 10)
         self.create_timer(0.1, self.control_loop)
 
-
-    # ===== Direct GPS logic =====
 
     def gps_callback(self, msg: NavSatFix):
         if msg.status.status < 0:
@@ -72,66 +68,67 @@ class Drive(Node):
         #     self.prev_lat = msg.latitude
         #     self.prev_lon= msg.longitude
         
-        # else:
-
+        # else: 
+        # Get the starting coords only at the beginning
         if self.start_lat is None:
             self.start_lat, self.start_lon = msg.latitude, msg.longitude
             self.start_x, self.start_y, _, _ = utm.from_latlon(msg.latitude, msg.longitude)
+
         if self.goal_x != self.start_x:
             self.angle_check_slope = (self.goal_y - self.start_y)/(self.goal_x - self.start_x)
+
         self.original_distance = math.hypot(self.start_x - self.goal_x, self.start_y - self.goal_y)
         self.gps_ready = True
+        self.get_logger().info("GPS ready.....")
+
 
     def control_loop(self):
         if not self.gps_ready:
             self.get_logger().warn("Waiting for GPS...")
             return
 
+        # Get our distance from the goal and starting location, at any given point
         dist_to_goal = math.hypot(self.goal_x - self.curr_x, self.goal_y - self.curr_y)
+        dist_from_start = self.original_distance - dist_to_goal
         self.get_logger().info(f"Distance to goal: {dist_to_goal:.2f} m")
-
-        dist_from_start = math.hypot(self.curr_x - self.start_x, self.curr_y - self.start_y)
 
         # Stop if within tolerance
         if dist_to_goal <= self.tolerance:
-            self.stop_robot()
+            self.vel_pub.publish(Twist())
             self.get_logger().info("Reached goal!")
             return
-
+        
         # Recalculate heading after moving step_distance
-        elif dist_from_start - self.prev_distance > self.step_distance:
+        if dist_from_start - self.prev_distance > self.step_distance:
+            # Applying some math formula, thats why converting to a,b and c
             a = dist_to_goal
             b = dist_from_start
             c = self.original_distance
+
             if b != 0 and a != 0:
                 try:
-                    if self.curr_y - self.angle_check_slope*self.curr_x >=0:
-                        self.theta = -math.acos((a**2 + b**2 - c**2) / (2 * a * b))
+                    theta = math.acos((a**2 + b**2 - c**2) / (2 * a * b))
+                    if self.curr_y - self.angle_check_slope*self.curr_x >= 0:
+                        self.theta = -theta
                     else:
-                        self.theta = math.acos((a**2 + b**2 - c**2) / (2 * a * b))
+                        self.theta = theta
                 except ValueError:
                     self.theta = 0.0
+
+            # Reset the previous distance
             self.prev_distance = b
             self.get_logger().info(f"Correction angle: {math.degrees(self.theta):.2f}°")
-
-        else:
-            # Apply correction
-            if abs(self.theta) > 0.05:
-                vel = Twist()
-                vel.linear.x = 0.0
-                vel.angular.z = 15.0
-                self.vel_pub.publish(vel)
-            else:
-                # Move forward
-                vel = Twist()
-                vel.linear.x = 15.0
-                vel.angular.z = 0.0
-                self.vel_pub.publish(vel)
-
-    def stop_robot(self):
+            
+        # Onwards we go with the heading
         vel = Twist()
-        vel.linear.x = 0.0
-        vel.angular.z = 0.0
+        if abs(self.theta) > 0.05:
+            vel.linear.x = 0.0
+            vel.angular.z = 15.0
+        else:
+            # Move forward
+            vel.linear.x = 15.0
+            vel.angular.z = 0.0
+        # Send velocity command
         self.vel_pub.publish(vel)
 
 def main(args=None):

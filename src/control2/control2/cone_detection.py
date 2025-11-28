@@ -61,7 +61,7 @@ class ConeDetection(Node):
         # And the other when it is in autonomous mode
         if not self.state:
             # Manual mode
-            
+            pass
             # In manual mode, we need to keep searching for the cone that the operator is going towards
             # Hence it will be the biggest 
 

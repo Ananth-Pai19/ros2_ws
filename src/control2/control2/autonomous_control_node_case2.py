@@ -225,9 +225,7 @@ class AutonomousControl(Node):
 
                 if depth < self.goal_thresh:
                     self.get_logger().info("Reached delivery location!") # Operator should press A for manual mode over here
-                    twist_message.linear.x = 0.0
-                    twist_message.angular.z = 0.0
-                    self.twist_pub.publish(twist_message)
+                    self.twist_pub.publish(Twist())
                     return
                 
                 self.twist_pub.publish(twist_message)
