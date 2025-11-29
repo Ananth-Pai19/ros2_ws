@@ -11,6 +11,7 @@ from time import sleep
 import math
 import numpy as np
 from cv_bridge import CvBridge
+from tf_transformations import euler_from_quaternion
 
 
 class AutonomousControl(Node):
@@ -87,7 +88,14 @@ class AutonomousControl(Node):
         if odom is not None:
             self.current_x = odom.pose.pose.position.x
             self.current_y = odom.pose.pose.position.y
-            self.current_orientation = odom.pose.pose.orientation.z
+            _, _, self.current_orientation = euler_from_quaternion(
+                [
+                    odom.pose.pose.orientation.x,
+                    odom.pose.pose.orientation.y,
+                    odom.pose.pose.orientation.z,
+                    odom.pose.pose.orientation.w
+                ]
+            )
 
 
     def read_from_csv(self):

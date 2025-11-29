@@ -1,0 +1,38 @@
+navsat_transform_node:
+  ros__parameters:
+    # Frequency of the main run loop (can be lower than EKF since GPS is 1Hz)
+    frequency: 10.0
+    
+    # Delay (in seconds) before navsat_transform_node begins processing
+    # Allows the system to receive initial sensor data
+    delay: 3.0
+    
+    # Magnetic declination for your location (Chennai, India is ~1.5° West)
+    # Get precise value from: https://www.ngdc.noaa.gov/geomag/calculators/magcalc.shtml
+    magnetic_declination_radians: -0.0262  # ~-1.5 degrees in radians
+    
+    # If true, reads yaw from odometry message instead of IMU
+    # Set to false since we're using IMU for heading
+    yaw_offset: 0.0
+    
+    # If true, publishes the transform from UTM to your map frame
+    broadcast_utm_transform: false
+    
+    # If true, publishes filtered GPS fix back out
+    publish_filtered_gps: true
+    
+    # Use the heading/yaw from odometry message instead of IMU
+    # Only set true if your odometry has earth-referenced orientation (e.g., magnetometer)
+    use_odometry_yaw: false
+    
+    # Wait for this transform to become available before processing
+    wait_for_datum: false
+    
+    # Zero altitude - useful for 2D navigation
+    zero_altitude: true
+    
+    # Broadcast cartesian transform between UTM and map frames
+    broadcast_utm_transform_as_parent_frame: false
+    
+    # If you want to set a datum manually (optional)
+    # datum: [12.9716, 77.5946, 0.0, map, base_link]  # lat, lon, alt, frame_id, child_frame_id

@@ -10,6 +10,11 @@ import cv2
 from cv_bridge import CvBridge
 from ultralytics import YOLO
 
+'''
+This is the code that takes the YOLO model and sends the required info on the YOLO topic
+IDK why but we decided that this would be better
+This has to be run on both manual and autonomous parts of the mission
+'''
 
 class ConeDetection(Node):
     def __init__(self):
@@ -46,12 +51,11 @@ class ConeDetection(Node):
             # We now have all the bounding boxes and depending on the state we will perform different operations
             if not self.state:
                 # We are in manual mode
-                
+                pass
 
 
         except Exception as e:
             self.get_logger().error(f"Exception: {e}")
-
 
 
     def timer_callback(self):

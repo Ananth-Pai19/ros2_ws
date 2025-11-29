@@ -12,7 +12,8 @@ import numpy as np
 import utm
 import math
 from cv_bridge import CvBridge
-from time import sleep
+import time
+from tf_transformations import euler_from_quaternion
 
 class AutoControlNode(Node):
     def __init__(self):
@@ -39,8 +40,18 @@ class AutoControlNode(Node):
         self.center_align_threshold = 5             # 5 Pixels of threshold
         self.orientation_threshold = 0.1            # Gotta tweak
         self.goal_thresh = 0.5
+        self.odom_goal_thresh = 1.0
+        
+        self.Kp_linear = 0.4
+        self.Ki_linear = 0.0001
+        self.Kd_linear = 0.001
+        self.Kp_angular = 0.6
+        self.Ki_angular = 0.0001
+        self.Kd_angular = 0.001
+        self.last_time = 0.0
 
         self.approx_gps_file = "pallu.csv"
+        self.odom_gps_file = "kavin.csv"
         # Assuming pallu.csv is of the form |Pickup Latitude|Pickup Longitude|Delivery Latitude|Delivery Longitude
 
         self.current_x = None                       # In local frame
@@ -79,7 +90,7 @@ class AutoControlNode(Node):
         if odom is not None:                        # From this we can get our current position in local odom frame
             self.current_x = odom.pose.pose.position.x
             self.current_y = odom.pose.pose.position.y
-            self.current_orientation = odom.pose.pose.orientation.z
+            _, _, self.current_orientation = euler_from_quaternion([odom.pose.pose.orientation.x, odom.pose.pose.orientation.y, odom.pose.pose.orientation.z, odom.pose.pose.orientation.w])
 
     
     def depth_callback(self, depth_image: Image):
@@ -113,14 +124,9 @@ class AutoControlNode(Node):
             self.get_logger().info("YOLO topic is still not publishing") 
             return
         
-        bounding_box_data = msg.data
-
-        if len(bounding_box_data) < 4:
-            return
+        self.bounding_box_data = msg.data
         
-        self.bounding_box_data = bounding_box_data
-        
-
+     
     def get_depth(self):
         # Get the depth from the detected bounding box
         if self.depth_image is None:
@@ -132,7 +138,6 @@ class AutoControlNode(Node):
         if (y_center < 2 or y_center >= self.depth_image.shape[0] - 2 or
             x_center < 2 or x_center >= self.depth_image.shape[1] - 2):
             return 
-
         # Extract a small patch (5x5) around the cone center for a stable median depth
         patch = self.depth_image[y_center - 2:y_center + 3, x_center - 2:x_center + 3].flatten()
 
@@ -178,7 +183,7 @@ class AutoControlNode(Node):
             return
 
         # Get the gps of the closest object
-        goal_gps = self.get_closest_object()
+        goal_gps = self.get_goal_of_closest_object()
 
         # Convert to utm frame
         self.goal_x, self.goal_y, _, _ = utm.from_latlon(goal_gps[0], goal_gps[1]) 
@@ -194,32 +199,76 @@ class AutoControlNode(Node):
         self.goal_y = self.goal_y + self.current_y 
 
         self.curent_distance = math.hypot(self.current_x - self.goal_x, self.current_y - self.goal_y)
-        return self.goal_x, self.goal_y
     
 
-    def get_closest_object(self):
+    def get_goal_of_closest_object(self):
         if self.current_x is None or self.current_y is None:
             return [0, 0]
         
         curr_distance = float('inf')
         closest_object = {}
         for row in self.csv_data:
-            distance = math.dist([self.current_x, self.current_y], [float(row["odom_x"]), float(row["odom_y"])])
+            delivery_x, delivery_y, _, _ = utm.from_latlon(float(row["Delivery Latitude"]), float(row["Delivery Longitude"]))
+            distance = math.dist([self.current_x, self.current_y], [delivery_x, delivery_y])
             if distance < curr_distance:
                 curr_distance = distance
                 closest_object = row
 
-        return [float(closest_object["Pickup Latitude"]), float(closest_object["Pickup Longitude"])]
+        return [float(closest_object["Delivery Latitude"]), float(closest_object["Delivery Longitude"])]
     
-
+    def compute(self, error, dt, mode):
+        self.integral += dt*error
+        if dt > 0:
+         self.derivative = (error - self.prev_error)/dt
+        else:
+            self.derivative = 0.0
+        
+        if mode == 0:
+            output = self.Kp_linear * error + self.Ki_linear * self.integral + self.Kd_linear * self.derivative
+        else:
+            output = self.Kp_angular * error + self.Ki_angular * self.integral + self.Kd_angular * self.derivative
+            
+        self.prev_error = error
+        return output
+    
+    
     def proceed_to_goal(self):
-        pass
+        # Well we have start and end odom locations
+        # So go to goal it is
+        if self.current_x is None or self.current_y is None or self.goal_x is None or self.goal_y is None:
+            self.get_logger().info("Something is None so I have reached the goal")
+            return True
+        # First check, have we reached the goal?
+        if math.dist([self.current_x, self.current_y], [self.goal_x, self.goal_y]) < self.odom_goal_thresh:
+            return True
+        
+        # Use PID controller
+        dx = self.goal_x - self.current_x
+        dy = self.goal_y - self.current_y
+        distance = math.sqrt(dx * dx + dy * dy)
+        angle_error = math.atan2(dy, dx) - self.current_orientation
+        angle_error = math.atan2(math.sin(angle_error), math.cos(angle_error))
+        now = self.get_clock().now().nanoseconds * 1e-9
+        
+        dt = now - self.last_time
+        self.last_time = now
+        self.linear=self.compute(distance,dt,0)
+        self.angular=self.compute(angle_error,dt,1)
 
+        self.linear = max(min(self.linear, 50), -50)
+        self.angular = max(min(self.angular, 40), -40)
+
+        cmd = Twist()
+        cmd.linear.x = self.linear
+        cmd.angular.z = self.angular
+        self.vel_pub.publish(cmd)
+        return False
 
     def timer_callback(self):
         # Main loop of the mission
         # Start off only when the rover is autnomous mode
         if not self.state:
+            self.captured_starting_coords = False
             self.get_logger().warn("Rover is in manual mode, delivery operation is performed only in autonomous mode")
             return
         
@@ -227,7 +276,7 @@ class AutoControlNode(Node):
             self.get_logger().warn("Waiting for GPS...")
             return
 
-        self.goal_x, self.goal_y = self.read_from_csv()   # Goes through reading CSV function to get required delivery positions in local frame
+        self.read_from_csv()   # Goes through reading CSV function to get required delivery positions in local frame
         # CSV is continuously being read, gotta change
 
         self.get_logger().info(f"Distance to goal: {self.current_distance:.2f} m")
@@ -279,7 +328,7 @@ class AutoControlNode(Node):
                 # Seems like YOLO still hasnt detected
                 # Proceed on by rotating in place
                 self.rotin_pub.publish(1)       # Aligns the wheels for rotinplace motion
-                sleep(0.5)
+                time.sleep(0.5)
 
                 # Rotate until cone comes in sight
                 self.get_logger().info("Ghumar Ghumar Ghumar Ghumar Ghume re!")
@@ -293,7 +342,7 @@ class AutoControlNode(Node):
                 self.get_logger().info("YOLO has detected something...")
                 self.vel_pub.publish(Twist())
                 self.rotin_pub.publish(2)       # Align wheels straght
-                sleep(0.5)
+                time.sleep(0.5)
                 self.rotin_pub.publish(0)
 
                 # Align the rover with the cone
