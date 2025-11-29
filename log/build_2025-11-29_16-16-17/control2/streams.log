@@ -1,0 +1,39 @@
+[0.647s] Invoking command in '/home/ananth/ros2_ws/build/control2': PYTHONPATH=/home/ananth/ros2_ws/build/control2/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/ananth/ros2_ws/install/control2/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py develop --editable --build-directory /home/ananth/ros2_ws/build/control2/build --no-deps symlink_data
+[0.867s] running develop
+[1.010s] running egg_info
+[1.010s] creating control2.egg-info
+[1.011s] writing control2.egg-info/PKG-INFO
+[1.011s] writing dependency_links to control2.egg-info/dependency_links.txt
+[1.011s] writing entry points to control2.egg-info/entry_points.txt
+[1.011s] writing requirements to control2.egg-info/requires.txt
+[1.011s] writing top-level names to control2.egg-info/top_level.txt
+[1.011s] writing manifest file 'control2.egg-info/SOURCES.txt'
+[1.013s] reading manifest file 'control2.egg-info/SOURCES.txt'
+[1.013s] writing manifest file 'control2.egg-info/SOURCES.txt'
+[1.015s] running build_ext
+[1.015s] Creating /home/ananth/ros2_ws/install/control2/lib/python3.10/site-packages/control2.egg-link (link to .)
+[1.016s] Installing case1 script to /home/ananth/ros2_ws/install/control2/lib/control2
+[1.016s] Installing case2 script to /home/ananth/ros2_ws/install/control2/lib/control2
+[1.016s] Installing cone_detector script to /home/ananth/ros2_ws/install/control2/lib/control2
+[1.016s] Installing fullboi script to /home/ananth/ros2_ws/install/control2/lib/control2
+[1.016s] 
+[1.016s] Installed /home/ananth/ros2_ws/build/control2
+[1.016s] running symlink_data
+[1.016s] creating /home/ananth/ros2_ws/install/control2/share/ament_index
+[1.016s] creating /home/ananth/ros2_ws/install/control2/share/ament_index/resource_index
+[1.017s] creating /home/ananth/ros2_ws/install/control2/share/ament_index/resource_index/packages
+[1.017s] symbolically linking /home/ananth/ros2_ws/build/control2/resource/control2 -> /home/ananth/ros2_ws/install/control2/share/ament_index/resource_index/packages
+[1.017s] symbolically linking /home/ananth/ros2_ws/build/control2/package.xml -> /home/ananth/ros2_ws/install/control2/share/control2
+[1.017s] creating /home/ananth/ros2_ws/install/control2/share/control2/launch
+[1.017s] symbolically linking /home/ananth/ros2_ws/build/control2/launch/display.launch.py -> /home/ananth/ros2_ws/install/control2/share/control2/launch
+[1.017s] symbolically linking /home/ananth/ros2_ws/build/control2/launch/dual_ekf_navsat.launch.py -> /home/ananth/ros2_ws/install/control2/share/control2/launch
+[1.017s] symbolically linking /home/ananth/ros2_ws/build/control2/launch/joy.launch.py -> /home/ananth/ros2_ws/install/control2/share/control2/launch
+[1.017s] creating /home/ananth/ros2_ws/install/control2/share/control2/urdf
+[1.017s] symbolically linking /home/ananth/ros2_ws/build/control2/urdf/rover_description.urdf.xacro -> /home/ananth/ros2_ws/install/control2/share/control2/urdf
+[1.017s] creating /home/ananth/ros2_ws/install/control2/share/control2/config
+[1.017s] symbolically linking /home/ananth/ros2_ws/build/control2/config/ekf_local.yaml -> /home/ananth/ros2_ws/install/control2/share/control2/config
+[1.017s] symbolically linking /home/ananth/ros2_ws/build/control2/config/navsat_transform.yaml -> /home/ananth/ros2_ws/install/control2/share/control2/config
+[1.017s] symbolically linking /home/ananth/ros2_ws/build/control2/config/ekf_global.yaml -> /home/ananth/ros2_ws/install/control2/share/control2/config
+[1.017s] symbolically linking /home/ananth/ros2_ws/build/control2/config/mapper_params_online_async.yaml -> /home/ananth/ros2_ws/install/control2/share/control2/config
+[1.017s] creating /home/ananth/ros2_ws/install/control2/share/control2/rviz
+[1.041s] Invoked command in '/home/ananth/ros2_ws/build/control2' returned '0': PYTHONPATH=/home/ananth/ros2_ws/build/control2/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/ananth/ros2_ws/install/control2/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py develop --editable --build-directory /home/ananth/ros2_ws/build/control2/build --no-deps symlink_data

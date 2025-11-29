@@ -1,9 +1,17 @@
 package.xml
 setup.cfg
 setup.py
+config/ekf_global.yaml
+config/ekf_local.yaml
 config/mapper_params_online_async.yaml
+config/navsat_transform.yaml
 control2/Full_Potential_Steering_Auto_ROS2.py
 control2/__init__.py
+control2/autonomous_control_node_case1.py
+control2/autonomous_control_node_case2.py
+control2/cone_detection.py
+control2/gps_final.py
+control2/last_object.py
 control2/random_pub.py
 control2/test.py
 control2.egg-info/PKG-INFO
@@ -13,4 +21,8 @@ control2.egg-info/entry_points.txt
 control2.egg-info/requires.txt
 control2.egg-info/top_level.txt
 control2.egg-info/zip-safe
+launch/display.launch.py
+launch/dual_ekf_navsat.launch.py
+launch/joy.launch.py
 resource/control2
+urdf/rover_description.urdf.xacro

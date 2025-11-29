@@ -14,6 +14,7 @@ from ultralytics import YOLO
 This is the code that takes the YOLO model and sends the required info on the YOLO topic
 IDK why but we decided that this would be better
 This has to be run on both manual and autonomous parts of the mission
+<<<<<<< This is just in case, cause orin might not be able to handle >>>>>>>
 '''
 
 class ConeDetection(Node):
@@ -51,7 +52,8 @@ class ConeDetection(Node):
             # We now have all the bounding boxes and depending on the state we will perform different operations
             if not self.state:
                 # We are in manual mode
-                pass
+                # In manual mode, we shall always take the cone of largest dimension in the view since we will be moving towards an object
+                # Seems to me that we have to log the color of the cone only when the operator clicks on A, so we will know that 
 
 
         except Exception as e:

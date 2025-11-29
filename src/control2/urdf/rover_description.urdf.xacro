@@ -1,0 +1,759 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="anveshak_rover">
+  
+  <!-- ================================================================ -->
+  <!-- PARAMETERS AND CONSTANTS -->
+  <!-- ================================================================ -->
+  
+  <!-- Robot dimensions -->
+  <xacro:property name="base_length" value="0.8"/>
+  <xacro:property name="base_width" value="0.6"/>
+  <xacro:property name="base_height" value="0.3"/>
+  <xacro:property name="base_mass" value="15.0"/>
+  
+  <!-- Wheel properties -->
+  <xacro:property name="wheel_radius" value="0.12"/>
+  <xacro:property name="wheel_thickness" value="0.08"/>
+  <xacro:property name="wheel_mass" value="1.5"/>
+  
+  <!-- Wheel positions -->
+  <xacro:property name="wheel_x_offset" value="0.25"/>  <!-- Distance from center along X -->
+  <xacro:property name="wheel_y_offset" value="0.35"/>  <!-- Distance from center along Y (width/2 - margin) -->
+  <xacro:property name="wheel_z_offset" value="-0.18"/> <!-- Height offset -->
+  
+  <!-- Bar differential properties -->
+  <xacro:property name="diff_bar_length" value="0.7"/>
+  <xacro:property name="diff_bar_radius" value="0.02"/>
+  <xacro:property name="diff_bar_mass" value="0.5"/>
+  
+  <!-- Arm properties -->
+  <xacro:property name="arm_base_height" value="0.15"/>
+  <xacro:property name="shoulder_offset_x" value="0.3"/>
+  <xacro:property name="shoulder_offset_y" value="-0.35"/>
+  
+  <!-- Link inertia macro -->
+  <xacro:macro name="inertia_box" params="mass length width height">
+    <inertial>
+      <mass value="${mass}"/>
+      <inertia ixx="${mass * (width*width + height*height) / 12.0}" 
+               iyy="${mass * (length*length + height*height) / 12.0}" 
+               izz="${mass * (length*length + width*width) / 12.0}" 
+               ixy="0.0" ixz="0.0" iyz="0.0"/>
+    </inertial>
+  </xacro:macro>
+  
+  <xacro:macro name="inertia_cylinder" params="mass radius length">
+    <inertial>
+      <mass value="${mass}"/>
+      <inertia ixx="${mass * (3*radius*radius + length*length) / 12.0}" 
+               iyy="${mass * (3*radius*radius + length*length) / 12.0}" 
+               izz="${mass * radius*radius / 2.0}" 
+               ixy="0.0" ixz="0.0" iyz="0.0"/>
+    </inertial>
+  </xacro:macro>
+  
+  <!-- ================================================================ -->
+  <!-- BASE LINK (Main Chassis) -->
+  <!-- ================================================================ -->
+  
+  <link name="base_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="${base_length} ${base_width} ${base_height}"/>
+      </geometry>
+      <material name="chassis_color">
+        <color rgba="0.2 0.2 0.2 1.0"/>
+      </material>
+    </visual>
+    
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="${base_length} ${base_width} ${base_height}"/>
+      </geometry>
+    </collision>
+    
+    <xacro:inertia_box mass="${base_mass}" length="${base_length}" width="${base_width}" height="${base_height}"/>
+  </link>
+  
+  <!-- ================================================================ -->
+  <!-- WHEELS (4x with individual control) -->
+  <!-- ================================================================ -->
+  
+  <!-- Front Left Wheel -->
+  <joint name="front_left_wheel_joint" type="continuous">
+    <parent link="base_link"/>
+    <child link="front_left_wheel"/>
+    <origin xyz="${wheel_x_offset} ${wheel_y_offset} ${wheel_z_offset}" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+    <limit effort="100" velocity="20"/>
+    <dynamics damping="0.1" friction="0.1"/>
+  </joint>
+  
+  <link name="front_left_wheel">
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5708 0 0"/>
+      <geometry>
+        <cylinder radius="${wheel_radius}" length="${wheel_thickness}"/>
+      </geometry>
+      <material name="wheel_color">
+        <color rgba="0.1 0.1 0.1 1.0"/>
+      </material>
+    </visual>
+    
+    <collision>
+      <origin xyz="0 0 0" rpy="1.5708 0 0"/>
+      <geometry>
+        <cylinder radius="${wheel_radius}" length="${wheel_thickness}"/>
+      </geometry>
+    </collision>
+    
+    <xacro:inertia_cylinder mass="${wheel_mass}" radius="${wheel_radius}" length="${wheel_thickness}"/>
+  </link>
+  
+  <!-- Front Right Wheel -->
+  <joint name="front_right_wheel_joint" type="continuous">
+    <parent link="base_link"/>
+    <child link="front_right_wheel"/>
+    <origin xyz="${wheel_x_offset} ${-wheel_y_offset} ${wheel_z_offset}" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+    <limit effort="100" velocity="20"/>
+    <dynamics damping="0.1" friction="0.1"/>
+  </joint>
+  
+  <link name="front_right_wheel">
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5708 0 0"/>
+      <geometry>
+        <cylinder radius="${wheel_radius}" length="${wheel_thickness}"/>
+      </geometry>
+      <material name="wheel_color">
+        <color rgba="0.1 0.1 0.1 1.0"/>
+      </material>
+    </visual>
+    
+    <collision>
+      <origin xyz="0 0 0" rpy="1.5708 0 0"/>
+      <geometry>
+        <cylinder radius="${wheel_radius}" length="${wheel_thickness}"/>
+      </geometry>
+    </collision>
+    
+    <xacro:inertia_cylinder mass="${wheel_mass}" radius="${wheel_radius}" length="${wheel_thickness}"/>
+  </link>
+  
+  <!-- Rear Left Wheel -->
+  <joint name="rear_left_wheel_joint" type="continuous">
+    <parent link="base_link"/>
+    <child link="rear_left_wheel"/>
+    <origin xyz="${-wheel_x_offset} ${wheel_y_offset} ${wheel_z_offset}" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+    <limit effort="100" velocity="20"/>
+    <dynamics damping="0.1" friction="0.1"/>
+  </joint>
+  
+  <link name="rear_left_wheel">
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5708 0 0"/>
+      <geometry>
+        <cylinder radius="${wheel_radius}" length="${wheel_thickness}"/>
+      </geometry>
+      <material name="wheel_color">
+        <color rgba="0.1 0.1 0.1 1.0"/>
+      </material>
+    </visual>
+    
+    <collision>
+      <origin xyz="0 0 0" rpy="1.5708 0 0"/>
+      <geometry>
+        <cylinder radius="${wheel_radius}" length="${wheel_thickness}"/>
+      </geometry>
+    </collision>
+    
+    <xacro:inertia_cylinder mass="${wheel_mass}" radius="${wheel_radius}" length="${wheel_thickness}"/>
+  </link>
+  
+  <!-- Rear Right Wheel -->
+  <joint name="rear_right_wheel_joint" type="continuous">
+    <parent link="base_link"/>
+    <child link="rear_right_wheel"/>
+    <origin xyz="${-wheel_x_offset} ${-wheel_y_offset} ${wheel_z_offset}" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+    <limit effort="100" velocity="20"/>
+    <dynamics damping="0.1" friction="0.1"/>
+  </joint>
+  
+  <link name="rear_right_wheel">
+    <visual>
+      <origin xyz="0 0 0" rpy="1.5708 0 0"/>
+      <geometry>
+        <cylinder radius="${wheel_radius}" length="${wheel_thickness}"/>
+      </geometry>
+      <material name="wheel_color">
+        <color rgba="0.1 0.1 0.1 1.0"/>
+      </material>
+    </visual>
+    
+    <collision>
+      <origin xyz="0 0 0" rpy="1.5708 0 0"/>
+      <geometry>
+        <cylinder radius="${wheel_radius}" length="${wheel_thickness}"/>
+      </geometry>
+    </collision>
+    
+    <xacro:inertia_cylinder mass="${wheel_mass}" radius="${wheel_radius}" length="${wheel_thickness}"/>
+  </link>
+  
+  <!-- ================================================================ -->
+  <!-- BAR DIFFERENTIAL (Connects front and rear axles for suspension) -->
+  <!-- ================================================================ -->
+  
+  <joint name="diff_bar_joint" type="revolute">
+    <parent link="base_link"/>
+    <child link="diff_bar"/>
+    <origin xyz="0 0 0" rpy="0 1.5708 0"/>
+    <axis xyz="1 0 0"/>
+    <limit lower="-0.3" upper="0.3" effort="50" velocity="5"/>
+    <dynamics damping="0.2" friction="0.05"/>
+  </joint>
+  
+  <link name="diff_bar">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="${diff_bar_radius}" length="${diff_bar_length}"/>
+      </geometry>
+      <material name="diff_color">
+        <color rgba="0.4 0.4 0.4 1.0"/>
+      </material>
+    </visual>
+    
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="${diff_bar_radius}" length="${diff_bar_length}"/>
+      </geometry>
+    </collision>
+    
+    <xacro:inertia_cylinder mass="${diff_bar_mass}" radius="${diff_bar_radius}" length="${diff_bar_length}"/>
+  </link>
+  
+  <!-- ================================================================ -->
+  <!-- MANIPULATOR ARM (5-DOF with gripper) -->
+  <!-- ================================================================ -->
+  
+  <!-- Arm Base (Fixed platform on rover) -->
+  <joint name="arm_base_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="arm_base_link"/>
+    <origin xyz="${shoulder_offset_x} ${shoulder_offset_y} ${base_height/2 + arm_base_height}" rpy="0 0 0"/>
+  </joint>
+  
+  <link name="arm_base_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.08 0.08 0.05"/>
+      </geometry>
+      <material name="arm_base_color">
+        <color rgba="0.3 0.3 0.3 1.0"/>
+      </material>
+    </visual>
+    
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.08 0.08 0.05"/>
+      </geometry>
+    </collision>
+    
+    <inertial>
+      <mass value="0.5"/>
+      <inertia ixx="0.001" iyy="0.001" izz="0.001" ixy="0.0" ixz="0.0" iyz="0.0"/>
+    </inertial>
+  </link>
+  
+  <!-- Joint 1: Base Rotation (Yaw around Z) -->
+  <joint name="arm_base_rotation_joint" type="revolute">
+    <parent link="arm_base_link"/>
+    <child link="shoulder_link"/>
+    <origin xyz="0 0 0.025" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-3.14159" upper="3.14159" effort="50" velocity="3"/>
+    <dynamics damping="0.1" friction="0.05"/>
+  </joint>
+  
+  <link name="shoulder_link">
+    <visual>
+      <origin xyz="0 0 0.06" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.06 0.06 0.12"/>
+      </geometry>
+      <material name="arm_color">
+        <color rgba="0.5 0.5 0.5 1.0"/>
+      </material>
+    </visual>
+    
+    <collision>
+      <origin xyz="0 0 0.06" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.06 0.06 0.12"/>
+      </geometry>
+    </collision>
+    
+    <inertial>
+      <mass value="1.0"/>
+      <inertia ixx="0.01" iyy="0.01" izz="0.005" ixy="0.0" ixz="0.0" iyz="0.0"/>
+    </inertial>
+  </link>
+  
+  <!-- Joint 2: Shoulder (Pitch - up/down) -->
+  <joint name="shoulder_pitch_joint" type="revolute">
+    <parent link="shoulder_link"/>
+    <child link="upper_arm_link"/>
+    <origin xyz="0 0 0.12" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-1.5708" upper="1.5708" effort="40" velocity="2"/>
+    <dynamics damping="0.1" friction="0.05"/>
+  </joint>
+  
+  <link name="upper_arm_link">
+    <visual>
+      <origin xyz="0 0 0.1" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.05 0.05 0.20"/>
+      </geometry>
+      <material name="arm_color">
+        <color rgba="0.5 0.5 0.5 1.0"/>
+      </material>
+    </visual>
+    
+    <collision>
+      <origin xyz="0 0 0.1" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.05 0.05 0.20"/>
+      </geometry>
+    </collision>
+    
+    <inertial>
+      <mass value="0.8"/>
+      <inertia ixx="0.003" iyy="0.003" izz="0.001" ixy="0.0" ixz="0.0" iyz="0.0"/>
+    </inertial>
+  </link>
+  
+  <!-- Joint 3: Elbow (Pitch) -->
+  <joint name="elbow_pitch_joint" type="revolute">
+    <parent link="upper_arm_link"/>
+    <child link="forearm_link"/>
+    <origin xyz="0 0 0.20" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-1.5708" upper="1.5708" effort="35" velocity="2.5"/>
+    <dynamics damping="0.1" friction="0.05"/>
+  </joint>
+  
+  <link name="forearm_link">
+    <visual>
+      <origin xyz="0 0 0.08" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.04 0.04 0.16"/>
+      </geometry>
+      <material name="arm_color">
+        <color rgba="0.5 0.5 0.5 1.0"/>
+      </material>
+    </visual>
+    
+    <collision>
+      <origin xyz="0 0 0.08" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.04 0.04 0.16"/>
+      </geometry>
+    </collision>
+    
+    <inertial>
+      <mass value="0.6"/>
+      <inertia ixx="0.002" iyy="0.002" izz="0.0005" ixy="0.0" ixz="0.0" iyz="0.0"/>
+    </inertial>
+  </link>
+  
+  <!-- Joint 4: Wrist (Roll) -->
+  <joint name="wrist_roll_joint" type="revolute">
+    <parent link="forearm_link"/>
+    <child link="wrist_link"/>
+    <origin xyz="0 0 0.16" rpy="0 0 0"/>
+    <axis xyz="1 0 0"/>
+    <limit lower="-3.14159" upper="3.14159" effort="20" velocity="3"/>
+    <dynamics damping="0.05" friction="0.02"/>
+  </joint>
+  
+  <link name="wrist_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.04 0.04 0.04"/>
+      </geometry>
+      <material name="wrist_color">
+        <color rgba="0.6 0.6 0.6 1.0"/>
+      </material>
+    </visual>
+    
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.04 0.04 0.04"/>
+      </geometry>
+    </collision>
+    
+    <inertial>
+      <mass value="0.3"/>
+      <inertia ixx="0.0003" iyy="0.0003" izz="0.0003" ixy="0.0" ixz="0.0" iyz="0.0"/>
+    </inertial>
+  </link>
+  
+  <!-- ================================================================ -->
+  <!-- GRIPPER (Parallel jaw gripper with mimic joints) -->
+  <!-- ================================================================ -->
+  
+  <!-- Gripper Base -->
+  <joint name="gripper_base_joint" type="fixed">
+    <parent link="wrist_link"/>
+    <child link="gripper_base_link"/>
+    <origin xyz="0 0 0.05" rpy="0 0 0"/>
+  </joint>
+  
+  <link name="gripper_base_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.05 0.08 0.05"/>
+      </geometry>
+      <material name="gripper_color">
+        <color rgba="0.4 0.4 0.4 1.0"/>
+      </material>
+    </visual>
+    
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.05 0.08 0.05"/>
+      </geometry>
+    </collision>
+    
+    <inertial>
+      <mass value="0.2"/>
+      <inertia ixx="0.0002" iyy="0.0002" izz="0.0002" ixy="0.0" ixz="0.0" iyz="0.0"/>
+    </inertial>
+  </link>
+  
+  <!-- Gripper Main Control Joint -->
+  <joint name="gripper_controller_joint" type="prismatic">
+    <parent link="gripper_base_link"/>
+    <child link="gripper_right_finger"/>
+    <origin xyz="0.025 0.04 0" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="0" upper="0.03" effort="30" velocity="0.5"/>
+    <dynamics damping="0.1" friction="0.05"/>
+  </joint>
+  
+  <link name="gripper_right_finger">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.02 0.02 0.08"/>
+      </geometry>
+      <material name="gripper_finger">
+        <color rgba="0.3 0.3 0.3 1.0"/>
+      </material>
+    </visual>
+    
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.02 0.02 0.08"/>
+      </geometry>
+    </collision>
+    
+    <inertial>
+      <mass value="0.1"/>
+      <inertia ixx="0.0001" iyy="0.0001" izz="0.00005" ixy="0.0" ixz="0.0" iyz="0.0"/>
+    </inertial>
+  </link>
+  
+  <!-- Left Finger (Mimic joint - mirrors right finger) -->
+  <joint name="gripper_left_finger_joint" type="prismatic">
+    <parent link="gripper_base_link"/>
+    <child link="gripper_left_finger"/>
+    <origin xyz="-0.025 0.04 0" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="0" upper="0.03" effort="30" velocity="0.5"/>
+    <dynamics damping="0.1" friction="0.05"/>
+    <mimic joint="gripper_controller_joint" multiplier="-1.0" offset="0.03"/>
+  </joint>
+  
+  <link name="gripper_left_finger">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.02 0.02 0.08"/>
+      </geometry>
+      <material name="gripper_finger">
+        <color rgba="0.3 0.3 0.3 1.0"/>
+      </material>
+    </visual>
+    
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.02 0.02 0.08"/>
+      </geometry>
+    </collision>
+    
+    <inertial>
+      <mass value="0.1"/>
+      <inertia ixx="0.0001" iyy="0.0001" izz="0.00005" ixy="0.0" ixz="0.0" iyz="0.0"/>
+    </inertial>
+  </link>
+  
+  <!-- ================================================================ -->
+  <!-- STEREO CAMERA (At rear of rover) -->
+  <!-- ================================================================ -->
+  
+  <!-- Camera Mount -->
+  <joint name="camera_mount_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="camera_mount_link"/>
+    <origin xyz="${-base_length/2 + 0.08} 0 ${base_height/2 + 0.05}" rpy="0 0 0"/>
+  </joint>
+  
+  <link name="camera_mount_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.08 0.15 0.08"/>
+      </geometry>
+      <material name="camera_mount_color">
+        <color rgba="0.7 0.7 0.7 1.0"/>
+      </material>
+    </visual>
+    
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.08 0.15 0.08"/>
+      </geometry>
+    </collision>
+    
+    <inertial>
+      <mass value="0.3"/>
+      <inertia ixx="0.0003" iyy="0.0003" izz="0.0003" ixy="0.0" ixz="0.0" iyz="0.0"/>
+    </inertial>
+  </link>
+  
+  <!-- Left Camera -->
+  <joint name="left_camera_joint" type="fixed">
+    <parent link="camera_mount_link"/>
+    <child link="left_camera_link"/>
+    <origin xyz="0 -0.06 0" rpy="0 0 0"/>
+  </joint>
+  
+  <link name="left_camera_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.04 0.025 0.035"/>
+      </geometry>
+      <material name="camera_color">
+        <color rgba="0.2 0.2 0.2 1.0"/>
+      </material>
+    </visual>
+    
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.04 0.025 0.035"/>
+      </geometry>
+    </collision>
+    
+    <inertial>
+      <mass value="0.15"/>
+      <inertia ixx="0.00005" iyy="0.00005" izz="0.00005" ixy="0.0" ixz="0.0" iyz="0.0"/>
+    </inertial>
+  </link>
+  
+  <!-- Left Camera Optical Frame -->
+  <joint name="left_camera_optical_joint" type="fixed">
+    <parent link="left_camera_link"/>
+    <child link="left_camera_optical_frame"/>
+    <origin xyz="0 0 0" rpy="-1.5708 0 -1.5708"/>
+  </joint>
+  
+  <link name="left_camera_optical_frame"/>
+  
+  <!-- Right Camera -->
+  <joint name="right_camera_joint" type="fixed">
+    <parent link="camera_mount_link"/>
+    <child link="right_camera_link"/>
+    <origin xyz="0 0.06 0" rpy="0 0 0"/>
+  </joint>
+  
+  <link name="right_camera_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.04 0.025 0.035"/>
+      </geometry>
+      <material name="camera_color">
+        <color rgba="0.2 0.2 0.2 1.0"/>
+      </material>
+    </visual>
+    
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.04 0.025 0.035"/>
+      </geometry>
+    </collision>
+    
+    <inertial>
+      <mass value="0.15"/>
+      <inertia ixx="0.00005" iyy="0.00005" izz="0.00005" ixy="0.0" ixz="0.0" iyz="0.0"/>
+    </inertial>
+  </link>
+  
+  <!-- Right Camera Optical Frame -->
+  <joint name="right_camera_optical_joint" type="fixed">
+    <parent link="right_camera_link"/>
+    <child link="right_camera_optical_frame"/>
+    <origin xyz="0 0 0" rpy="-1.5708 0 -1.5708"/>
+  </joint>
+  
+  <link name="right_camera_optical_frame"/>
+  
+  <!-- ================================================================ -->
+  <!-- GAZEBO PLUGINS (For simulation) -->
+  <!-- ================================================================ -->
+  
+  <!-- Differential Drive Plugin for Gazebo -->
+  <gazebo>
+    <plugin name="gazebo_ros_diff_drive" filename="libgazebo_ros_diff_drive.so">
+      <ros>
+        <namespace>/</namespace>
+      </ros>
+      <!-- wheels -->
+      <left_joint>front_left_wheel_joint</left_joint>
+      <left_joint>rear_left_wheel_joint</left_joint>
+      <right_joint>front_right_wheel_joint</right_joint>
+      <right_joint>rear_right_wheel_joint</right_joint>
+      <!-- kinematics -->
+      <wheel_separation>0.7</wheel_separation>
+      <wheel_diameter>0.24</wheel_diameter>
+      <!-- limits -->
+      <max_wheel_torque>100</max_wheel_torque>
+      <max_wheel_acceleration>2.0</max_wheel_acceleration>
+      <!-- output -->
+      <publish_odom>true</publish_odom>
+      <publish_odom_tf>false</publish_odom_tf>
+      <publish_wheel_tf>false</publish_wheel_tf>
+      <odometry_frame>odom</odometry_frame>
+      <robot_base_frame>base_link</robot_base_frame>
+    </plugin>
+  </gazebo>
+  
+  <!-- Left Camera Gazebo Plugin -->
+  <gazebo reference="left_camera_link">
+    <sensor type="camera" name="left_camera">
+      <update_rate>30.0</update_rate>
+      <camera name="left_camera">
+        <horizontal_fov>1.047</horizontal_fov>
+        <image>
+          <width>640</width>
+          <height>480</height>
+          <format>R8G8B8</format>
+        </image>
+        <clip>
+          <near>0.02</near>
+          <far>300</far>
+        </clip>
+        <noise>
+          <type>gaussian</type>
+          <mean>0.0</mean>
+          <stddev>0.007</stddev>
+        </noise>
+      </camera>
+      <plugin name="camera_controller" filename="libgazebo_ros_camera.so">
+        <ros>
+          <namespace>/stereo</namespace>
+          <remapping>image_raw:=left/image_raw</remapping>
+          <remapping>camera_info:=left/camera_info</remapping>
+        </ros>
+        <camera_name>left_camera</camera_name>
+        <frame_name>left_camera_optical_frame</frame_name>
+      </plugin>
+    </sensor>
+  </gazebo>
+  
+  <!-- Right Camera Gazebo Plugin -->
+  <gazebo reference="right_camera_link">
+    <sensor type="camera" name="right_camera">
+      <update_rate>30.0</update_rate>
+      <camera name="right_camera">
+        <horizontal_fov>1.047</horizontal_fov>
+        <image>
+          <width>640</width>
+          <height>480</height>
+          <format>R8G8B8</format>
+        </image>
+        <clip>
+          <near>0.02</near>
+          <far>300</far>
+        </clip>
+        <noise>
+          <type>gaussian</type>
+          <mean>0.0</mean>
+          <stddev>0.007</stddev>
+        </noise>
+      </camera>
+      <plugin name="camera_controller" filename="libgazebo_ros_camera.so">
+        <ros>
+          <namespace>/stereo</namespace>
+          <remapping>image_raw:=right/image_raw</remapping>
+          <remapping>camera_info:=right/camera_info</remapping>
+        </ros>
+        <camera_name>right_camera</camera_name>
+        <frame_name>right_camera_optical_frame</frame_name>
+      </plugin>
+    </sensor>
+  </gazebo>
+  
+  <!-- Gazebo Material Definitions -->
+  <gazebo reference="base_link">
+    <material>Gazebo/DarkGrey</material>
+    <mu1>0.5</mu1>
+    <mu2>0.5</mu2>
+  </gazebo>
+  
+  <gazebo reference="front_left_wheel">
+    <material>Gazebo/Black</material>
+    <mu1>1.0</mu1>
+    <mu2>1.0</mu2>
+  </gazebo>
+  
+  <gazebo reference="front_right_wheel">
+    <material>Gazebo/Black</material>
+    <mu1>1.0</mu1>
+    <mu2>1.0</mu2>
+  </gazebo>
+  
+  <gazebo reference="rear_left_wheel">
+    <material>Gazebo/Black</material>
+    <mu1>1.0</mu1>
+    <mu2>1.0</mu2>
+  </gazebo>
+  
+  <gazebo reference="rear_right_wheel">
+    <material>Gazebo/Black</material>
+    <mu1>1.0</mu1>
+    <mu2>1.0</mu2>
+  </gazebo>
+  
+</robot>
